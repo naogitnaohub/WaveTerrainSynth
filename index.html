@@ -2,13 +2,13 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <title>Wave Terrain</title>
-
+    <title>Wave Terrain Synthesis</title>
     <style>
       body {
         margin: 0;
         overflow: hidden;
-        background: rgb(4, 93, 82);
+        background: #0c0b0a;
+        user-select: none;
       }
 
       canvas {
@@ -19,21 +19,67 @@
 
       #info {
         position: absolute;
-        top: 10px;
-        left: 10px;
-
+        top: 15px;
+        left: 20px;
         color: rgb(168, 30, 104);
-        font-family: Arial, sans-serif;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        font-weight: bold;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+        pointer-events: none;
+      }
+
+      .slidecontainer {
+        position: absolute;
+        bottom: 25px;
+        left: 20px;
+        z-index: 10;
+        background: rgba(12, 11, 10, 0.85);
+        padding: 12px 18px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        border: 1px solid rgba(168, 30, 104, 0.3);
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #ffffff;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .slidecontainer label {
+        font-size: 13px;
+        letter-spacing: 0.5px;
+        color: #c864ec;
+      }
+
+      .slider {
+        width: 220px;
+        cursor: pointer;
+        accent-color: #c864ec;
       }
     </style>
   </head>
-
   <body>
     <div id="info">wavy wavy</div>
+    
+      <div class="slidecontainer">
+
+        
+
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <label id="freq-display">Frequency:</label>
+          <input type="range" min="40" max="800" value="80" class="slider" id="freq">
+        </div>
+
+        <div style="display: flex; flex-direction: column; gap: 2px; margin-top: 6px;">
+          <label id="fm-display">FM Intensity: </label>
+          <input type="range" min="0" max="500" value="0" class="slider" id="fm-index">
+        </div>
+      </div>
+
 
     <canvas id="canvas"></canvas>
 
+    <!-- Entry point module script -->
     <script type="module" src="./js/main.js"></script>
   </body>
-
 </html>
