@@ -13,6 +13,7 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
       { name: 'cx', defaultValue: 0.0 },
       { name: 'cz', defaultValue: 0.0 },
       { name: 'fmIndex', defaultValue: 0.0, minValue: 0.0, maxValue: 500.0 },
+      { name: 'fmRatio', defaultValue: 2.0, minValue: 0.25, maxValue: 12.0 },
       { name: 'yScale', defaultValue: -1.7, minValue: -10.0, maxValue: 10.0 },
       { name: 'a', defaultValue: 1.5, minValue: 0.1, maxValue: 10.0 }
     ];
@@ -37,16 +38,36 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
   // Pure mathematical equation engine utilizing variable terrain selectors
   evaluateTerrain(wave, x, z, a) {
     switch (wave) {
+      // 1. Log valley equation
       case 1:  
         return Math.sin((z * Math.sin(z) - x * Math.sin(x) * Math.log(z * z + 1)) / a);
-      case 2: 
-        return (Math.sin(0.8 * x) * Math.cos(0.8 * z) + Math.sin(0.4 * x * z)) * 0.6;
+      
+      // 2. Processing Sync: Concentric ripple rings
+      case 2:  
+        return Math.sin(a * (x * x + z * z));
+      
+      // 3. Processing Sync: Sinc-modulated grid fold
       case 3:  
         return Math.sin(Math.sin(a * x * z) / (x * z || 0.001));
+      
+      // 4. Fractal Noise Lattice
+      case 4: {
+        const f1 = Math.sin(x * a) * Math.cos(z * a);
+        const f2 = Math.sin(x * 2.3 * a + 1.0) * Math.cos(z * 1.9 * a);
+        return (f1 * 0.7 + f2 * 0.3);
+      }
+      
+      // 5. Hard-Clipping Fold Hyper-Cradles
+      case 5: {
+        const raw = Math.sin(x * 0.5) * Math.cos(z * 0.5) * a;
+        return Math.sin(raw > 1.0 ? 2.0 - raw : (raw < -1.0 ? -2.0 - raw : raw));
+      }
+
+      // Default Fallback: Processing cross-phase blend function
       default: 
-        return (Math.sin(0.8 * x) * Math.cos(0.8 * z) + Math.sin(0.4 * x * z)) * 0.6;
+        return (Math.sin(a * z * x) + Math.cos(a * (z * z - x * x))) / 2;
+    }
   }
-}
 
   process(inputs, outputs, parameters) {
     const output = outputs[0];
@@ -60,6 +81,7 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
     const cx = parameters.cx;
     const cz = parameters.cz;
     const fmIdxParam = parameters.fmIndex;
+    const fmRatioParam = parameters.fmRatio;
     const yScaleParam = parameters.yScale;
     const aParam = parameters.a;
 
@@ -68,6 +90,7 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
     const xConstant = cx.length > 1 ? null : cx[0];
     const zConstant = cz.length > 1 ? null : cz[0];
     const fmConstant = fmIdxParam.length > 1 ? null : fmIdxParam[0];
+    const ratioConstant = fmRatioParam.length > 1 ? null : fmRatioParam[0];
     const yConstant = yScaleParam.length > 1 ? null : yScaleParam[0];
     const aConstant = aParam.length > 1 ? null : aParam[0];
 
@@ -80,13 +103,15 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
       const posX = xConstant !== null ? xConstant : cx[i];
       const posZ = zConstant !== null ? zConstant : cz[i];
       const fmIndex = fmConstant !== null ? fmConstant : fmIdxParam[i];
+      const fmRatio = ratioConstant !== null ? ratioConstant : fmRatioParam[i];
       const yScale = yConstant !== null ? yConstant : yScaleParam[i];
       const valA = aConstant !== null ? aConstant : aParam[i];
 
       let targetF = baseF;
 
       if (fmIndex > 0.001) {
-        const modFreq = baseF * 2.0; 
+        // Dynamic modulator speed calculation
+        const modFreq = baseF * fmRatio; 
         this.modulatorPhase += (twoPi * modFreq) * inverseSampleRate;
         if (this.modulatorPhase >= twoPi) this.modulatorPhase -= twoPi;
 
@@ -153,6 +178,7 @@ export function updateAudioSynth() {
   terrainNode.parameters.get('radius').setValueAtTime(CONFIG.orbit.r, t);
   terrainNode.parameters.get('frequency').setValueAtTime(CONFIG.synth.frequency, t);
   terrainNode.parameters.get('fmIndex').setValueAtTime(CONFIG.synth.fmIndex, t);
+  terrainNode.parameters.get('fmRatio').setValueAtTime(CONFIG.synth.fmRatio || 2.0, t);
   terrainNode.parameters.get('yScale').setValueAtTime(CONFIG.synth.yScale, t);
   terrainNode.parameters.get('a').setValueAtTime(CONFIG.synth.a, t);
 
