@@ -1,5 +1,5 @@
 export const CONFIG = {
-  RES: 35,
+  RES: 100,
   SPAN: 16.0,
   BLOCK_BOTTOM: 3.5,
 
