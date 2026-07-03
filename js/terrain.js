@@ -1,5 +1,5 @@
 // =====  =====
-export const RES = 40;          
+export const RES = 20;          
 export const SPAN = 16.0;       
 export const YSCALE = -1.7;     
 export const LIFT = -0.07;      

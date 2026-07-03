@@ -77,7 +77,7 @@ export function processInputs() {
   if (keys["+"] || keys["="]) orbitState.r += radiusSpeed;
   if (keys["-"] || keys["_"]) orbitState.r -= radiusSpeed;
 
-  // Real-time button triggers parsing
+  // Real-time button triggers parsing (Frequency)
   let currentFreq = parseFloat(freqSlider.value) || 120;
   if (keys["1"]) {
     currentFreq = Math.max(parseFloat(freqSlider.min), currentFreq - 4);
@@ -86,6 +86,17 @@ export function processInputs() {
   if (keys["2"]) {
     currentFreq = Math.min(parseFloat(freqSlider.max), currentFreq + 4);
     syncFrequencyUI(currentFreq);
+  }
+
+  // Real-time button triggers parsing (FM Intensity)
+  let currentFm = parseFloat(fmSlider.value) || 0;
+  if (keys["4"]) {
+    currentFm = Math.max(parseFloat(fmSlider.min), currentFm - 3);
+    syncFmUI(currentFm);
+  }
+  if (keys["5"]) {
+    currentFm = Math.min(parseFloat(fmSlider.max), currentFm + 3);
+    syncFmUI(currentFm);
   }
 
   clampOrbitState();

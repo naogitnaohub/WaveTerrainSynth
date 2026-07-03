@@ -1,7 +1,6 @@
 let audioCtx = null;
 let terrainNode = null;
 
-// High-performance background thread code executing PURE Wave Terrain Synthesis
 const workletCode = `
 class WaveTerrainProcessor extends AudioWorkletProcessor {
   static get parameterDescriptors() {
@@ -9,17 +8,17 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
       { name: 'frequency', defaultValue: 110, minValue: 20, maxValue: 2000 },
       { name: 'radius', defaultValue: 2.0, minValue: 0.1, maxValue: 8.0 },
       { name: 'cx', defaultValue: 0.0 },
-      { name: 'cz', defaultValue: 0.0 }
+      { name: 'cz', defaultValue: 0.0 },
+      { name: 'fmIndex', defaultValue: 0.0, minValue: 0.0, maxValue: 500.0 }
     ];
   }
 
   constructor() {
     super();
-    // High-resolution local clock running at full sampleRate speed (44.1kHz)
     this.audioPhase = 0.0; 
+    this.modulatorPhase = 0.0; // Separate stable oscillator for the FM engine
   }
 
-  // Exact math copy of your continuous landscape equation
   evaluateTerrain(x, z) {
     return (Math.sin(0.8 * x) * Math.cos(0.8 * z) + Math.sin(0.4 * x * z)) * 0.6;
   }
@@ -35,33 +34,49 @@ class WaveTerrainProcessor extends AudioWorkletProcessor {
     const radius = parameters.radius;
     const cx = parameters.cx;
     const cz = parameters.cz;
+    const fmIdxParam = parameters.fmIndex;
 
-    // Web Audio Core Rule: If a parameter is static, its array length is exactly 1.
-    // We check if length is greater than 1, otherwise we extract the single baseline value.
     const fConstant = freq.length   > 1 ? null : freq[0];
     const rConstant = radius.length > 1 ? null : radius[0];
     const xConstant = cx.length     > 1 ? null : cx[0];
     const zConstant = cz.length     > 1 ? null : cz[0];
+    const fmConstant = fmIdxParam.length > 1 ? null : fmIdxParam[0];
+
+    // Cache static reciprocal processing limit variables
+    const inverseSampleRate = 1.0 / sampleRate;
+    const twoPi = 2.0 * Math.PI;
 
     for (let i = 0; i < leftChannel.length; i++) {
-      const currentF = fConstant !== null ? fConstant : freq[i];
-      const r        = rConstant !== null ? rConstant : radius[i];
-      const posX     = xConstant !== null ? xConstant : cx[i];
-      const posZ     = zConstant !== null ? zConstant : cz[i];
+      const baseF   = fConstant  !== null ? fConstant  : freq[i];
+      const r       = rConstant  !== null ? rConstant  : radius[i];
+      const posX    = xConstant  !== null ? xConstant  : cx[i];
+      const posZ    = zConstant  !== null ? zConstant  : cz[i];
+      const fmIndex = fmConstant !== null ? fmConstant : fmIdxParam[i];
 
-      // 1. Advance independent high-resolution phase clock at actual audio rate
-      this.audioPhase += (2 * Math.PI * currentF) / sampleRate;
-      
-      // 2. PERFECT CLOSED LOOP: Wrap cleanly between 0 and 2*PI 
-      if (this.audioPhase >= 2 * Math.PI) {
-        this.audioPhase -= 2 * Math.PI;
+      let targetF = baseF;
+
+      // 1. PERFECT BYPASS: Absolute zero-branch switch prevents artifacts and cuts CPU overhead
+      if (fmIndex > 0.001) {
+        // Modulator runs at a distinct harmonic ratio (e.g., 2.0x base frequency for clean harmonics)
+        const modFreq = baseF * 2.0; 
+        this.modulatorPhase += (twoPi * modFreq) * inverseSampleRate;
+        if (this.modulatorPhase >= twoPi) this.modulatorPhase -= twoPi;
+
+        // Apply true frequency modulation to the phase step accumulation speed
+        targetF += Math.sin(this.modulatorPhase) * fmIndex;
       }
 
-      // 3. PURE GEOMETRIC SCAN PATH: Map coordinates on a uniform circle orbit
+      // 2. Continuous Phase Accumulation (Eliminates coordinate step jumping spikes)
+      this.audioPhase += (twoPi * targetF) * inverseSampleRate;
+      
+      // Wrap efficiently within twoPi bounds
+      if (this.audioPhase >= twoPi) this.audioPhase -= twoPi;
+      else if (this.audioPhase < 0.0) this.audioPhase += twoPi;
+
+      // 3. Scan uniform loop orbit path
       const ox = posX + r * Math.cos(this.audioPhase);
       const oz = posZ + r * Math.sin(this.audioPhase);
 
-      // 4. OUTPUT SIGNAL: Extract terrain height data directly
       const sampleValue = this.evaluateTerrain(ox, oz) * 0.4; 
       
       leftChannel[i] = sampleValue;
@@ -82,7 +97,6 @@ export async function initAudio() {
   const url = URL.createObjectURL(blob);
   await audioCtx.audioWorklet.addModule(url);
   
-  // Set up clean explicit stereo layout limits
   terrainNode = new AudioWorkletNode(audioCtx, 'wave-terrain-processor', {
     channelCount: 2,
     outputChannelCount: [2]
@@ -96,15 +110,15 @@ export async function initAudio() {
   limiter.connect(audioCtx.destination);
 }
 
-export function updateAudioSynth(orbitState, frequency = 110) {
+export function updateAudioSynth(orbitState, frequency = 110, fmIndex = 0) {
   if (!terrainNode || !audioCtx) return;
   const t = audioCtx.currentTime;
   
-  // Send clean parameter tracking straight to the audio thread
   terrainNode.parameters.get('cx').setValueAtTime(orbitState.cx, t);
   terrainNode.parameters.get('cz').setValueAtTime(orbitState.cz, t);
   terrainNode.parameters.get('radius').setValueAtTime(orbitState.r, t);
   terrainNode.parameters.get('frequency').setValueAtTime(frequency, t);
+  terrainNode.parameters.get('fmIndex').setValueAtTime(fmIndex, t);
 }
 
 export function resumeAudio() {
