@@ -10,43 +10,40 @@
 //   - sliders, hotkeys, on-screen panels -> js/ui/
 //   - shared numeric state (CONFIG) -> js/core/config.js
 import { initAudio, resumeAudio } from './audio/engine.js';
-import { initInputHandlers, processInputs, syncUI } from './ui/input.js';
+import { initInputHandlers, initMainControls, processInputs } from './ui/input.js';
 import { initRenderer, clearCanvas, drawTerrain, drawOrbit } from './render/renderer.js';
 import { initScope2D, drawScope2D } from './render/scope2d.js';
 import { initModMatrixUI } from './ui/mod-matrix-ui.js';
 import { initMidi } from './midi/midi.js';
-import { initPrecisionMode } from './ui/precision-mode.js';
 import { initEnvelopePanelUI } from './ui/envelope-panel-ui.js';
 import { initLfoPanelUI } from './ui/lfo-panel-ui.js';
+import { initPresetsUI } from './ui/presets-ui.js';
 
 const canvas = document.getElementById("canvas");
 
 // These can start immediately -- none of them need audio to already exist.
+// initMainControls() also pushes CONFIG's defaults into each potentiometer/slider as
+// it builds them, so the UI, CONFIG, and (once audio starts) the sound all agree from
+// the very first frame.
 initInputHandlers();
+initMainControls();
 initRenderer();
 initScope2D();
-initPrecisionMode();
-
-// Push each slider's current HTML value into CONFIG once at startup, so the app's
-// internal state always matches what's shown on screen, even before the user touches
-// anything.
-["wave-select", "freq", "fm-index", "y-scale", "volume", "param-a"].forEach(id => {
-  const el = document.getElementById(id);
-  if (el) syncUI(id, parseFloat(el.value));
-});
 
 // Browsers refuse to play audio until the user interacts with the page (the
 // "autoplay policy"), so everything audio-related is deferred to this first click on
-// the canvas. initAudio() builds the whole Web Audio graph; the panel/MIDI setup only
-// makes sense once that graph (and its envelope/LFO nodes) actually exists.
+// the canvas. initAudio() builds the whole Web Audio graph; the envelope/LFO/matrix/
+// preset panels only make sense once that graph (and its envelope/LFO nodes) exists,
+// so they stay empty until then -- everything else in the control panel (the pots,
+// volume) is already live and usable before this.
 window.addEventListener("click", async e => {
   if (e.target === canvas) {
     await initAudio();
     resumeAudio();
-    document.getElementById('mod-panel').style.display = 'flex';
     initEnvelopePanelUI();
     initLfoPanelUI();
     initModMatrixUI();
+    initPresetsUI();
     initMidi();
   }
 });

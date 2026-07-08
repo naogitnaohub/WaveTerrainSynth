@@ -215,7 +215,21 @@ export function clearCanvas() {
   gl.clearColor(parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, 1.0);
 }
 
-function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+// The control panel now occupies a fixed-width strip on the right, so the 3D view's
+// "center" should be the center of the *remaining* space, not the whole window --
+// otherwise the terrain reads as off-center, biased toward vanishing behind the
+// panel. Reading the panel's actual rendered width (rather than hardcoding it here
+// too) means this keeps working if the panel's width in style.css ever changes.
+function availableWidth() {
+  const panel = document.getElementById('control-panel');
+  return window.innerWidth - (panel ? panel.getBoundingClientRect().width : 0);
+}
+
+function resizeCanvas() {
+  const w = availableWidth(), h = window.innerHeight;
+  canvas.width = w; canvas.height = h;
+  canvas.style.width = `${w}px`; canvas.style.height = `${h}px`;
+}
 
 // Builds the camera: a perspective projection (how 3D points squash onto a 2D screen,
 // including a field-of-view/aspect ratio) combined with a view transform derived from

@@ -1,17 +1,24 @@
 // Builds the four ADSR faders into #env-panel. Kept as its own file, separate from
 // lfo-panel-ui.js / mod-matrix-ui.js, so each modulation-panel section stays a
 // one-file, one-concern unit -- easy to find, easy to extend independently.
+import { STEPS } from '../core/config.js';
 import { getEnvelope } from '../audio/engine.js';
 
 const FADERS = [
-  { id: 'attack',  label: 'A', min: 0.001, max: 2, step: 0.001, get: e => e.attack,  set: (e, v) => e.setAttack(v) },
-  { id: 'decay',   label: 'D', min: 0.001, max: 2, step: 0.001, get: e => e.decay,   set: (e, v) => e.setDecay(v) },
-  { id: 'sustain', label: 'S', min: 0,     max: 1, step: 0.01,  get: e => e.sustain, set: (e, v) => e.setSustain(v) },
-  { id: 'release', label: 'R', min: 0.001, max: 3, step: 0.001, get: e => e.release, set: (e, v) => e.setRelease(v) }
+  { id: 'attack',  label: 'A', min: 0.001, max: 2, step: STEPS.attack,  get: e => e.attack,  set: (e, v) => e.setAttack(v) },
+  { id: 'decay',   label: 'D', min: 0.001, max: 2, step: STEPS.decay,   get: e => e.decay,   set: (e, v) => e.setDecay(v) },
+  { id: 'sustain', label: 'S', min: 0,     max: 1, step: STEPS.sustain, get: e => e.sustain, set: (e, v) => e.setSustain(v) },
+  { id: 'release', label: 'R', min: 0.001, max: 3, step: STEPS.release, get: e => e.release, set: (e, v) => e.setRelease(v) }
 ];
 
-function formatValue(id, v) {
-  return id === 'sustain' ? v.toFixed(2) : `${v.toFixed(2)}s`;
+// Purely decorative reference lines running the length of the fader -- a native
+// range input can't render a custom tick list on its own track, so this is a small
+// separate strip of evenly-spaced marks placed right beside it.
+function buildTicks(count = 11) {
+  const ticks = document.createElement('div');
+  ticks.className = 'vfader-ticks';
+  for (let i = 0; i < count; i++) ticks.appendChild(document.createElement('span'));
+  return ticks;
 }
 
 // Call once, after initAudio() has resolved (so the envelope node exists). This
@@ -35,21 +42,17 @@ export function initEnvelopePanelUI() {
     input.min = f.min; input.max = f.max; input.step = f.step;
     input.value = f.get(envelope);
 
-    const valueLabel = document.createElement('span');
-    valueLabel.className = 'env-fader-value';
-    valueLabel.textContent = formatValue(f.id, f.get(envelope));
+    input.oninput = () => f.set(envelope, parseFloat(input.value));
 
-    input.oninput = () => {
-      const v = parseFloat(input.value);
-      f.set(envelope, v);
-      valueLabel.textContent = formatValue(f.id, v);
-    };
+    const faderWithTicks = document.createElement('div');
+    faderWithTicks.className = 'vfader-with-ticks';
+    faderWithTicks.append(buildTicks(), input);
 
     const letter = document.createElement('span');
     letter.className = 'env-fader-label';
     letter.textContent = f.label;
 
-    col.append(input, letter, valueLabel);
+    col.append(faderWithTicks, letter);
     container.appendChild(col);
   }
 }

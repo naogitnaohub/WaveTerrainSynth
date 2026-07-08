@@ -1,42 +1,127 @@
 body { margin: 0; overflow: hidden; background: #0c0b0a; user-select: none; }
-canvas { display: block; width: 100vw; height: 100vh; }
-#info { position: absolute; top: 15px; left: 20px; color: rgb(168, 30, 104); font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
-#precision-badge { display: none; margin-left: 10px; font-size: 11px; letter-spacing: 1px; padding: 2px 6px; border-radius: 4px; background: rgba(74, 222, 128, 0.15); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.5); vertical-align: middle; }
-body.precision-fine #precision-badge { display: inline-block; }
-body.precision-fine .slider { accent-color: #4ade80; }
-.slidecontainer { position: absolute; bottom: 25px; left: 20px; z-index: 10; background: rgba(12, 11, 10, 0.85); padding: 12px 18px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); border: 1px solid rgba(168, 30, 104, 0.3); font-family: 'Segoe UI', Arial, sans-serif; color: #ffffff; display: flex; flex-direction: column; gap: 6px; }
-.slidecontainer > div { display: flex; flex-direction: column; gap: 2px; }
-.slidecontainer .mt-6 { margin-top: 6px; }
-.slidecontainer label { font-size: 13px; letter-spacing: 0.5px; color: #c864ec; }
-.slider { width: 220px; cursor: pointer; accent-color: #c864ec; }
+canvas { display: block; }
+/* #canvas (the WebGL terrain view) is deliberately NOT forced to 100vw/100vh here --
+   render/renderer.js sizes and positions it in JS to the space left of the control
+   panel, so the terrain centers in the visible area rather than the whole window. */
+#canvas { position: absolute; top: 0; left: 0; }
+/* rgb(242, 64, 217) = CONFIG.style.cursorColor (core/config.js) -- the scope's pink,
+   reused everywhere else pink text appears so there's exactly one "pink" in the app. */
+/* z-index needed: #canvas (the WebGL view) has no z-index of its own, but as a
+   later sibling in the DOM it still paints over #info by default stacking order --
+   without this, "wavy wavy" renders but sits completely hidden underneath it. */
+#info { position: absolute; top: 15px; left: 20px; z-index: 5; color: rgb(242, 64, 217); font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
 
-.mod-panel { top: 15px; right: 20px; bottom: auto; left: auto; display: none; padding: 10px 14px; }
-.mod-panel h3 { margin: 0 0 6px; font-size: 13px; color: #ffffff; }
-.mod-panel .mod-panel-columns { flex-direction: row; gap: 14px; align-items: flex-start; }
-.mod-col { display: flex; flex-direction: column; gap: 4px; }
+/* The single unified control panel: every control lives here, top to bottom, one
+   row-section per group. Scrolls internally if the content is taller than the
+   viewport rather than spilling off-screen. */
+.control-panel { position: absolute; top: 15px; right: 20px; bottom: 20px; width: 500px; overflow-y: auto; z-index: 10; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; display: flex; flex-direction: column; gap: 6px; }
 
-.env-panel { display: flex; gap: 10px; }
+/* Each row-section sets its own --row-color (text/pointer/accent color) and a
+   top-lighter-to-bottom-darker gradient tinted toward that same color, so the panel
+   reads as a sequence of distinct, color-coded sections while staying dark and readable. */
+.row-section { border-radius: 8px; padding: 7px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(to bottom, var(--row-light), var(--row-dark)); color: var(--row-color); }
+.row-neutral { --row-light: rgba(242,64,217,0.10); --row-dark: rgba(20,10,18,0.95); --row-color: rgb(242, 64, 217); }
+.row-orange  { --row-light: rgba(251,146,60,0.16);  --row-dark: rgba(32,20,8,0.95);   --row-color: #fb923c; }
+.row-pink    { --row-light: rgba(242,64,217,0.16);  --row-dark: rgba(30,8,26,0.95);   --row-color: rgb(242, 64, 217); }
+
+/* A thin vertical rule marking a boundary between control groups within a shared
+   row-section -- e.g. the Wave/Y-Scale/A group vs. the Frequency/FM group, or LFOs
+   vs. the ADSR envelope -- similar to the panel dividers on a real modular synth. */
+.module-divider { align-self: stretch; width: 1px; background: rgba(255,255,255,0.15); }
+
+.preset-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.preset-row input[type="text"] { width: 90px; background: #1c1a19; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 6px; font-size: 12px; }
+.preset-row select { background: #1c1a19; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 6px; font-size: 12px; max-width: 100px; }
+.preset-row button { background: #1c1a19; color: #fff; border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; padding: 3px 8px; font-size: 12px; cursor: pointer; }
+
+/* Overrides the row's inherited color so the ADSR block reads as its own module,
+   distinct from the LFOs it now shares a row with (violet vs. orange). */
+.env-panel { color: #a78bfa; }
+
+.pot-row { display: flex; justify-content: space-around; gap: 10px; }
+/* Knob on the left, value+label stacked beside it -- keeps a pot's total height close
+   to just the knob's own height (36px) instead of adding two more text lines below it. */
+.pot { display: flex; flex-direction: row; align-items: center; gap: 5px; }
+.pot-svg { width: 36px; height: 36px; cursor: ns-resize; touch-action: none; overflow: visible; flex-shrink: 0; }
+.pot-track { fill: #1c1a19; stroke: rgba(255, 255, 255, 0.2); stroke-width: 1.5; }
+.pot-tick { stroke: rgba(255, 255, 255, 0.3); stroke-width: 1; }
+.pot-pointer { stroke: currentColor; stroke-width: 2.5; stroke-linecap: round; }
+.pot-text { display: flex; flex-direction: column; line-height: 1.2; }
+.pot-value { font-size: 11px; color: inherit; }
+.pot-label { font-size: 9px; font-weight: bold; letter-spacing: 0.5px; color: inherit; opacity: 0.85; }
+
+.env-panel { display: flex; gap: 8px; }
 .env-fader-col { display: flex; flex-direction: column; align-items: center; gap: 3px; }
-.vfader { writing-mode: vertical-lr; direction: rtl; width: 14px; height: 68px; cursor: pointer; accent-color: #c864ec; }
-.env-fader-label { font-size: 11px; color: #c864ec; font-weight: bold; }
-.env-fader-value { font-size: 10px; color: #a0a0a0; }
+/* 60px (not the LFO block's own natural ~75px) so the whole env-fader-col, including
+   its trailing letter label, comes out level with a .lfo-block's total height --
+   see .lfo-adsr-row's align-items:center below for the rest of that alignment. */
+/* color:inherit is required here, not just accent-color -- browsers don't inherit
+   `color` into form controls by default (their UA stylesheet sets it explicitly),
+   so accent-color:currentColor would otherwise resolve against that default black
+   instead of the row's actual color. */
+.vfader { writing-mode: vertical-lr; direction: rtl; width: 14px; height: 60px; cursor: pointer; color: inherit; accent-color: currentColor; }
+.env-fader-label { font-size: 11px; color: inherit; font-weight: bold; }
+/* Tick marks alongside each ADSR fader -- purely decorative reference lines, one per
+   ~10% of the fader's travel, generated in JS (envelope-panel-ui.js) since a native
+   range input can't render a custom tick list on its own track. */
+.vfader-with-ticks { position: relative; display: flex; align-items: center; gap: 3px; }
+.vfader-ticks { display: flex; flex-direction: column; justify-content: space-between; height: 60px; width: 4px; }
+.vfader-ticks span { display: block; width: 100%; height: 1px; background: currentColor; opacity: 0.35; }
 
-.lfo-panel { display: flex; flex-direction: column; gap: 8px; }
-.lfo-block { display: flex; flex-direction: column; gap: 3px; }
+/* LFOs and the ADSR envelope share one row again -- align-items:center so the two
+   blocks (close in height, but not exactly equal) sit level with each other rather
+   than both hugging the row's top edge. */
+.lfo-adsr-row { display: flex; gap: 14px; align-items: center; }
+
+.lfo-panel { display: flex; flex-direction: row; gap: 10px; }
+/* align-items:center so the title/LED and shape-picker buttons sit centered above
+   the rate/depth potentiometers (the widest row in the block) instead of hugging
+   the left edge of the block's full width. */
+.lfo-block { display: flex; flex-direction: column; gap: 3px; align-items: center; }
 .lfo-block-header { display: flex; align-items: center; gap: 6px; }
 .lfo-led { width: 9px; height: 9px; border-radius: 50%; box-shadow: 0 0 4px currentColor; animation: lfo-blink 1s steps(1) infinite; }
 @keyframes lfo-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0.15; } }
 .shape-btn-row { display: flex; gap: 3px; }
-.shape-btn { width: 18px; height: 18px; padding: 0; border: 1px solid rgba(168, 30, 104, 0.4); border-radius: 3px; background: #1c1a19; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.shape-btn { width: 18px; height: 18px; padding: 0; border: 1px solid rgba(255,255,255,0.25); border-radius: 3px; background: #1c1a19; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .shape-btn svg { width: 12px; height: 12px; stroke: #888; fill: none; stroke-width: 1.3; }
-.shape-btn.active { border-color: #c864ec; background: rgba(200, 100, 236, 0.2); }
-.shape-btn.active svg { stroke: #c864ec; }
-.lfo-fader-row { display: flex; align-items: center; gap: 5px; }
-.mini-slider { width: 68px; cursor: pointer; accent-color: #c864ec; }
+.shape-btn.active { border-color: currentColor; background: rgba(255, 255, 255, 0.12); }
+.shape-btn.active svg { stroke: currentColor; }
+.lfo-pots-row { display: flex; gap: 8px; margin-top: 2px; }
 
-.matrix-grid { display: grid; gap: 1px; align-items: center; font-size: 9px; }
-.mm-corner { }
-.mm-col-header { text-align: center; font-weight: bold; padding-bottom: 2px; }
-.mm-row-label { color: #ddd; padding-right: 5px; white-space: nowrap; }
-.mm-cell { position: relative; width: 22px; height: 15px; background: #1c1a19; border: 1px solid rgba(168, 30, 104, 0.25); border-radius: 2px; cursor: ns-resize; overflow: hidden; touch-action: none; }
+/* Matrix grid + the Volume fader sit side by side, tops aligned -- the fader's own
+   height is set to match the grid's total height (20px header + 3*60px rows =
+   200px, see .vfader-console) so the two read as one aligned unit. */
+.matrix-row { display: flex; align-items: flex-start; gap: 10px; }
+/* align-items/justify-items: stretch (the default, stated explicitly here) so each
+   .mm-cell fills its grid track -- row/column sizing comes from the inline
+   grid-template-rows/columns mod-matrix-ui.js sets, not from any intrinsic content
+   size. flex:1 (with min-width:0 so the grid can shrink below its content size)
+   lets the matrix stretch to fill the rest of the panel's width. */
+.matrix-grid { display: grid; gap: 2px; align-items: stretch; font-size: 10px; flex: 1; min-width: 0; }
+
+.volume-col { display: flex; flex-direction: column; align-items: center; gap: 4px; flex-shrink: 0; }
+.vol-label { font-size: 10px; font-weight: bold; letter-spacing: 0.5px; color: inherit; opacity: 0.85; }
+/* Plain vertical fader, same recipe as .vfader (accent-color: currentColor picks up
+   the row's pink) just taller -- sized to match the matrix grid's total height so
+   the two blocks line up. */
+.vfader-console { writing-mode: vertical-lr; direction: rtl; width: 18px; height: 200px; cursor: pointer; color: inherit; accent-color: currentColor; }
+
+/* The grid's top-left corner cell doubles as the Bypass toggle -- a plain checkbox,
+   no label text, centered in the same 44px x 20px slot the corner used to sit in
+   empty. */
+.mm-corner { display: flex; align-items: center; justify-content: center; }
+.mm-corner input[type="checkbox"] { margin: 0; cursor: pointer; color: inherit; accent-color: currentColor; }
+.mm-col-header { text-align: center; font-weight: bold; padding-bottom: 2px; display: flex; align-items: flex-end; justify-content: center; }
+.mm-row-label { display: flex; align-items: center; padding-right: 5px; white-space: nowrap; font-weight: bold; letter-spacing: 0.5px; }
+.mm-cell { position: relative; background: #1c1a19; border: 1px solid rgba(255,255,255,0.15); border-radius: 2px; cursor: ns-resize; overflow: hidden; touch-action: none; }
 .mm-fill { position: absolute; left: 0; right: 0; bottom: 0; height: 0%; background: currentColor; opacity: 0.65; }
+
+/* The 2D scope now lives as the last row inside the control panel (sized to the
+   panel's width) instead of floating as an absolutely-positioned overlay above the
+   3D view -- see render/scope2d.js, which draws relative to this canvas's own
+   client size rather than window/pad math. .row-scope grows (flex:1) to absorb
+   whatever vertical space the other, fixed-height rows don't use, and the canvas
+   fills that row completely -- min-height:0 on both is needed so a flex child is
+   actually allowed to shrink/grow within its column instead of only growing. */
+.row-scope { flex: 1; min-height: 0; display: flex; }
+.scope-canvas { display: block; width: 100%; flex: 1; min-height: 0; border-radius: 6px; }

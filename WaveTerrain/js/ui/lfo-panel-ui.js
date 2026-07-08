@@ -1,13 +1,15 @@
 // Compact per-LFO UI: a mini waveform-shape icon picker, a blinking LED (color = shape,
-// blink period = the LFO's own rate), and small rate/depth faders. Kept separate from
-// mod-matrix-ui.js (routing) and envelope-panel-ui.js (ADSR) -- one file per
+// blink period = the LFO's own rate), and rate/depth potentiometers. Kept separate
+// from mod-matrix-ui.js (routing) and envelope-panel-ui.js (ADSR) -- one file per
 // modulation-panel section, so adding a third LFO later is a data change here only.
+import { STEPS } from '../core/config.js';
 import { getLFO } from '../audio/engine.js';
 import { LFO_SHAPES } from '../audio/modulation/lfo.js';
+import { createPotentiometer } from './potentiometer.js';
 
-const LFO_IDS = ['lfo1', 'lfo2'];
+export const LFO_IDS = ['lfo1', 'lfo2'];
 
-const SHAPE_COLOR = { sine: '#4ade80', triangle: '#fb923c', square: '#f472b6' };
+const SHAPE_COLOR = { sine: '#4ade80', triangle: '#fb923c', square: '#facc15' };
 
 const SHAPE_ICON_PATHS = {
   sine: '<path d="M1 6 C2 1 4 1 6 6 C8 11 10 11 11 6" />',
@@ -27,29 +29,6 @@ function buildShapeButton(shape, lfo, buttons, updateLed) {
     updateLed();
   };
   return btn;
-}
-
-function buildMiniFader(formatLabel, min, max, step, value, onInput) {
-  const row = document.createElement('div');
-  row.className = 'lfo-fader-row';
-
-  const input = document.createElement('input');
-  input.type = 'range';
-  input.className = 'mini-slider';
-  input.min = min; input.max = max; input.step = step; input.value = value;
-
-  const valueLabel = document.createElement('span');
-  valueLabel.className = 'env-fader-value';
-  valueLabel.textContent = formatLabel(value);
-
-  input.oninput = () => {
-    const v = parseFloat(input.value);
-    onInput(v);
-    valueLabel.textContent = formatLabel(v);
-  };
-
-  row.append(input, valueLabel);
-  return row;
 }
 
 function buildLfoBlock(id) {
@@ -87,13 +66,23 @@ function buildLfoBlock(id) {
     shapesRow.appendChild(btn);
   });
 
+  const potsRow = document.createElement('div');
+  potsRow.className = 'lfo-pots-row';
+
+  const ratePot = createPotentiometer({
+    min: 0.05, max: 20, step: STEPS.lfoRate, value: lfo.rate, visualTicks: 11,
+    label: 'RATE', formatValue: v => `${v.toFixed(2)}Hz`,
+    onInput: v => { lfo.setRate(v); updateLed(); }
+  });
+  const depthPot = createPotentiometer({
+    min: 0, max: 1, step: STEPS.lfoDepth, value: lfo.depth, visualTicks: 11,
+    label: 'DEPTH', formatValue: v => v.toFixed(2),
+    onInput: v => lfo.setDepth(v)
+  });
+  potsRow.append(ratePot.el, depthPot.el);
+
   header.append(title, led);
-  block.append(
-    header,
-    shapesRow,
-    buildMiniFader(v => `${v.toFixed(2)}Hz`, 0.05, 20, 0.05, lfo.rate, v => { lfo.setRate(v); updateLed(); }),
-    buildMiniFader(v => v.toFixed(2), 0, 1, 0.01, lfo.depth, v => lfo.setDepth(v))
-  );
+  block.append(header, shapesRow, potsRow);
 
   return block;
 }
@@ -103,5 +92,15 @@ export function initLfoPanelUI() {
   const container = document.getElementById('lfo-panel');
   if (!container) return;
   container.innerHTML = '';
-  LFO_IDS.forEach(id => container.appendChild(buildLfoBlock(id)));
+  LFO_IDS.forEach((id, i) => {
+    // A thin vertical rule between LFO1 and LFO2 (and, via index.html, another one
+    // between this whole panel and the ADSR envelope) -- a visual module boundary,
+    // like the dividers between sections on a real modular synth panel.
+    if (i > 0) {
+      const divider = document.createElement('div');
+      divider.className = 'module-divider';
+      container.appendChild(divider);
+    }
+    container.appendChild(buildLfoBlock(id));
+  });
 }

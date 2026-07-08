@@ -7,44 +7,59 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div id="info">wavy wavy <span id="precision-badge">FINE (x)</span></div>
+    <div id="info">wavy wavy</div>
 
-    <div class="slidecontainer">
-      <div><label id="wave-display">Wave Selection: Wave 2</label><input type="range" min="1" max="5" value="2" step="1" class="slider" id="wave-select"></div>
-      <div class="mt-6"><label id="freq-display">Frequency:</label><input type="range" min="20" max="800" value="80" step="1" class="slider" id="freq"></div>
-      <div class="mt-6"><label id="fm-display">FM Intensity: </label><input type="range" min="0" max="500" value="0" step="1" class="slider" id="fm-index"></div>
-      <div class="mt-6"><label id="fm-ratio-display">FM Ratio: 2.0</label><input type="range" min="0.5" max="8.0" value="2.0" step="0.25" class="slider" id="fm-ratio"></div>
-      <div class="mt-6"><label id="yscale-display">Y-Scale Profile:</label><input type="range" min="-5.0" max="5.0" value="-1.7" step="0.1" class="slider" id="y-scale"></div>
-      <div class="mt-6"><label id="param-a-display">Wave Shape (a): 1.50</label><input type="range" min="-5.0" max="15.0" value="1.5" step="0.05" class="slider" id="param-a"></div>
-      
-      
-
-      <div class="mt-6"><label id="volume-display">Master Volume:</label><input type="range" min="0.0" max="1.0" value="0.4" step="0.01" class="slider" id="volume"></div>
-    </div>
-
-    <div class="slidecontainer mod-panel" id="mod-panel">
-      <h3>Modulation (click canvas to enable audio first)</h3>
-
-      <div class="mod-panel-columns">
-        <div class="mod-col">
-          <label>LFOs</label>
-          <div id="lfo-panel" class="lfo-panel"></div>
+    <div class="control-panel" id="control-panel">
+      <div class="row-section row-neutral">
+        <div class="preset-row">
+          <input type="text" id="preset-name" placeholder="preset name">
+          <button id="preset-save-btn" type="button">Save</button>
+          <select id="preset-select"></select>
+          <button id="preset-load-btn" type="button">Load</button>
+          <button id="preset-delete-btn" type="button">Delete</button>
+          <button id="preset-export-btn" type="button">Export</button>
+          <button id="preset-import-btn" type="button">Import</button>
+          <input type="file" id="preset-import-file" accept="application/json" style="display:none">
         </div>
+      </div>
 
-        <div class="mod-col">
-          <label>Envelope</label>
+      <div class="row-section row-neutral">
+        <div class="pot-row">
+          <div id="wave-mount"></div>
+          <div id="yscale-mount"></div>
+          <div id="a-mount"></div>
+          <div class="module-divider"></div>
+          <div id="freq-mount"></div>
+          <div id="fmratio-mount"></div>
+          <div id="fmindex-mount"></div>
+        </div>
+      </div>
+
+      <div class="row-section row-orange">
+        <div class="lfo-adsr-row">
+          <div id="lfo-panel" class="lfo-panel"></div>
+          <div class="module-divider"></div>
           <div id="env-panel" class="env-panel"></div>
         </div>
+      </div>
 
-        <div class="mod-col">
-          <label>Matrix</label>
+      <div class="row-section row-pink">
+        <div class="matrix-row">
           <div id="matrix-panel" class="matrix-grid"></div>
+          <div class="module-divider"></div>
+          <div class="volume-col">
+            <span class="vol-label">VOL</span>
+            <input type="range" min="0.0" max="1.0" value="0.4" class="vfader-console" id="volume">
+          </div>
         </div>
+      </div>
+
+      <div class="row-section row-neutral row-scope">
+        <canvas id="uiCanvas" class="scope-canvas"></canvas>
       </div>
     </div>
 
     <canvas id="canvas"></canvas>
-    <canvas id="uiCanvas" style="position: absolute; top:0; left:0; z-index:2; pointer-events: none; width:100vw; height:100vh;"></canvas>
     <script type="module" src="./js/main.js"></script>
   </body>
 </html>

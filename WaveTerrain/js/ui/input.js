@@ -1,50 +1,98 @@
-// Everything about turning raw browser input (sliders, keyboard, mouse) into changes
-// to CONFIG + the audio engine. MIDI (midi/midi.js) reuses syncUI() from here rather
-// than duplicating this logic -- a MIDI CC and a mouse drag both end up as one call.
-import { CONFIG, updateSynthParam, updateOrbitState } from '../core/config.js';
+// Everything about turning raw browser input (potentiometers, the volume slider,
+// keyboard, mouse) into changes to CONFIG + the audio engine. MIDI (midi/midi.js)
+// reuses syncUI() from here rather than duplicating this logic -- a MIDI CC and a
+// knob drag both end up as one call.
+import { CONFIG, STEPS, LIMITS, updateSynthParam, updateOrbitState } from '../core/config.js';
 import { updateAudioSynth, updateAudioWaveform, resumeAudio, noteOn, noteOff } from '../audio/engine.js';
 import { rebuildTerrainMesh } from '../render/renderer.js';
+import { createPotentiometer } from './potentiometer.js';
 
 const keys = {}, mouse = { x: 0, y: 0 };
 let isDragging = false;
 
-// One entry per slider: which CONFIG.synth key it controls (p), how to format its
-// on-screen label (f), and an optional extra callback (cb) for side effects beyond
-// "update CONFIG and push to audio" -- e.g. rebuilding the 3D mesh when the shape changes.
+// One entry per control: which CONFIG.synth key it drives (p), how to format its
+// value (f), an optional extra callback (cb) for side effects beyond "update CONFIG
+// and push to audio" (e.g. rebuilding the 3D mesh), and which widget it is. `volume`
+// is the one control that stays a native slider (id points at its HTML element);
+// everything else is a potentiometer built at startup and mounted into `mount`.
+// Wave/Y-Scale/A and Frequency/FM Ratio/FM Intensity now share one row-section (see
+// index.html) instead of two separately-colored ones, to save vertical space -- each
+// pot keeps its group identity via its own `color` instead of an ancestor row's.
+const GREEN = '#4ade80', YELLOW = '#facc15';
 const UI_MAP = {
-  "wave-select":   { p: 'waveNumber', f: v => `Wave Selection: Wave ${v}`,       cb: v => { rebuildTerrainMesh(); updateAudioWaveform(v); } },
-  "y-scale":       { p: 'yScale',     f: v => `Y-Scale Profile: ${v.toFixed(1)}` },
-  "param-a":       { p: 'a',          f: v => `Wave Shape (a): ${v.toFixed(2)}`, cb: () => rebuildTerrainMesh() },
-  "volume":        { p: 'volume',     f: v => `Master Volume: ${~~(v * 100)}%` },
-  "fm-index":      { p: 'fmIndex',    f: v => `FM Intensity: ${~~v}` },
-  "fm-ratio":      { p: 'fmRatio',    f: v => `FM Ratio: ${v.toFixed(2)}` },
-  "freq":          { p: 'frequency',  f: v => `Frequency: ${~~v} Hz` }
+  "wave-select": { p: 'waveNumber', kind: 'pot', mount: 'wave-mount', label: 'WAVE', f: v => `${v}`, visualTicks: LIMITS.waveNumber.max - LIMITS.waveNumber.min + 1, color: GREEN, cb: v => { rebuildTerrainMesh(); updateAudioWaveform(v); } },
+  "y-scale":     { p: 'yScale',     kind: 'pot', mount: 'yscale-mount', label: 'Y-SCALE',  f: v => v.toFixed(1), color: GREEN },
+  "param-a":     { p: 'a',          kind: 'pot', mount: 'a-mount',      label: 'A',        f: v => v.toFixed(2), color: GREEN, cb: () => rebuildTerrainMesh() },
+  "volume":      { p: 'volume',     kind: 'slider', f: v => `${~~(v * 100)}%` },
+  "freq":        { p: 'frequency', kind: 'pot', mount: 'freq-mount',    label: 'FREQ',     f: v => `${~~v}Hz`, color: YELLOW },
+  "fm-ratio":    { p: 'fmRatio',    kind: 'pot', mount: 'fmratio-mount', label: 'FM RATIO', f: v => v.toFixed(2), color: YELLOW },
+  "fm-index":    { p: 'fmIndex',    kind: 'pot', mount: 'fmindex-mount', label: 'FM INT',   f: v => `${~~v}`, color: YELLOW }
 };
 
-// The one function every input path (slider drag, hotkey, MIDI CC) calls to apply a
-// new value: clamps + stores it in CONFIG, updates that slider's on-screen position
-// and label, runs any extra per-param callback, then pushes everything to the audio
+const controls = {}; // id -> { kind: 'pot'|'slider', ref: potentiometer instance | <input> element }
+
+// The one function every input path (knob drag, hotkey, MIDI CC) calls to apply a new
+// value: clamps + stores it in CONFIG, updates that control's on-screen position/
+// display, runs any extra per-param callback, then pushes everything to the audio
 // engine. Keeping this in one place is what guarantees the UI, CONFIG, and the actual
-// sound can never drift out of sync with each other.
+// sound can never drift out of sync with each other -- and it's what let potentiometers
+// slot in without every other caller (hotkeys, MIDI, presets) needing to change.
 export function syncUI(id, val) {
   const cfg = UI_MAP[id];
   if (!cfg) return;
   updateSynthParam(cfg.p, val);
-  const actualVal = CONFIG.synth[cfg.p], el = document.getElementById(id), disp = document.getElementById(cfg.f.id || (cfg.f.id = id === 'freq' ? 'freq-display' : id === 'wave-select' ? 'wave-display' : `${id}-display`));
-  if (el) el.value = actualVal;
+  const actualVal = CONFIG.synth[cfg.p];
+
+  const control = controls[id];
+  if (control?.kind === 'pot') control.ref.setValue(actualVal);
+  else if (control?.kind === 'slider') control.ref.value = actualVal;
+
+  const disp = document.getElementById(`${id}-display`); // only the volume slider still has one of these
   if (disp) disp.textContent = cfg.f(actualVal);
   if (cfg.cb) cfg.cb(actualVal);
   updateAudioSynth();
 }
 
-// Shortcuts for backward compatibility or module exports
-export const syncWaveUI = v => syncUI("wave-select", v);
-export const syncYScaleUI = v => syncUI("y-scale", v);
-export const syncParamAUI = v => syncUI("param-a", v);
-export const syncVolumeUI = v => syncUI("volume", v);
-export const syncFmUI = v => syncUI("fm-index", v);
-export const syncFmRatioUI = v => syncUI("fm-ratio", v);
-export const syncFrequencyUI = v => syncUI("freq", v);
+// Applies a { [CONFIG.synth key]: value } bag (e.g. a loaded preset) through the same
+// syncUI() path every other input uses, so CONFIG, the controls, and the audio engine
+// all stay in agreement -- see core/presets.js.
+export function applySynthState(values) {
+  Object.keys(UI_MAP).forEach(id => {
+    const p = UI_MAP[id].p;
+    if (values[p] !== undefined) syncUI(id, values[p]);
+  });
+}
+
+// Builds the potentiometers and wires the volume slider. Call once at startup --
+// unlike the modulation panel's controls, these don't need audio to already exist,
+// only their mount points in the DOM.
+export function initMainControls() {
+  Object.keys(UI_MAP).forEach(id => {
+    const cfg = UI_MAP[id];
+
+    if (cfg.kind === 'slider') {
+      const el = document.getElementById(id);
+      if (!el) return;
+      if (STEPS[cfg.p] !== undefined) el.step = STEPS[cfg.p];
+      el.oninput = function() { syncUI(id, parseFloat(this.value)); };
+      controls[id] = { kind: 'slider', ref: el };
+      syncUI(id, CONFIG.synth[cfg.p]);
+      return;
+    }
+
+    const mount = document.getElementById(cfg.mount);
+    if (!mount) return;
+    const limits = LIMITS[cfg.p] || { min: 0, max: 1 };
+    const pot = createPotentiometer({
+      min: limits.min, max: limits.max, step: STEPS[cfg.p] ?? 1,
+      value: CONFIG.synth[cfg.p], visualTicks: cfg.visualTicks ?? 11,
+      label: cfg.label, formatValue: cfg.f, color: cfg.color,
+      onInput: v => syncUI(id, v)
+    });
+    mount.appendChild(pot.el);
+    controls[id] = { kind: 'pot', ref: pot };
+  });
+}
 
 export function initInputHandlers() {
   const win = window;
@@ -79,12 +127,6 @@ export function initInputHandlers() {
   win.addEventListener("wheel", e => {
     if (e.target.id === "canvas") e.preventDefault(), CONFIG.view.zoom = Math.max(0.4, Math.min(2.5, CONFIG.view.zoom + (e.deltaY < 0 ? 0.08 : -0.08)));
   }, { passive: false });
-
-  // Dynamically initialize all HTML input listeners out of the map definition
-  Object.keys(UI_MAP).forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.oninput = function() { syncUI(id, parseFloat(this.value)); };
-  });
 }
 
 // Called once per animation frame (see main.js's loop()) rather than directly from

@@ -1,7 +1,9 @@
-// A small oscilloscope-style overlay (plain 2D Canvas, not WebGL) that traces one
-// period of the waveform the current orbit/FM settings would produce -- a visual
-// preview of the audio signal's shape, redrawn every frame like the 3D view. Purely
-// for feedback; it doesn't touch the audio path at all.
+// A small oscilloscope-style preview (plain 2D Canvas, not WebGL) that traces one
+// period of the waveform the current orbit/FM settings would produce, redrawn every
+// frame like the 3D view. Purely for feedback; it doesn't touch the audio path at
+// all. The canvas lives as a normal row inside the control panel (see index.html's
+// .scope-canvas), sized by CSS, so this file only ever draws relative to its own
+// clientWidth/clientHeight -- no window-relative position math needed anymore.
 import { CONFIG } from '../core/config.js';
 import { evaluateTerrain } from '../terrain/terrain-core.js';
 
@@ -10,7 +12,7 @@ const ctx = uiCanvas.getContext("2d");
 
 // Pre-allocate variables to eliminate inner-loop allocations and garbage collection
 let dpr = window.devicePixelRatio || 1;
-let winW = window.innerWidth, winH = window.innerHeight;
+let cssW = 0, cssH = 0;
 
 export function initScope2D() {
   resizeUICanvas();
@@ -18,22 +20,24 @@ export function initScope2D() {
 }
 
 function resizeUICanvas() {
-  winW = window.innerWidth;
-  winH = window.innerHeight;
   dpr = window.devicePixelRatio || 1;
-  uiCanvas.width = winW * dpr;
-  uiCanvas.height = winH * dpr;
-  ctx.scale(dpr, dpr);
+  cssW = uiCanvas.clientWidth;
+  cssH = uiCanvas.clientHeight;
+  uiCanvas.width = cssW * dpr;
+  uiCanvas.height = cssH * dpr;
+  // setTransform (not scale) so repeated resizes replace the DPR scale instead of
+  // compounding it.
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
 export function drawScope2D() {
-  const w = 320, h = 180, pad = 20;
-  const x0 = winW - w - pad;
-  const y0 = winH - h - pad;
+  if (!cssW || !cssH) return;
+  const pad = 6;
+  const x0 = pad, y0 = pad;
+  const w = cssW - pad * 2, h = cssH - pad * 2;
   const hHalf = h * 0.5;
 
-  // Clear only the bounding box region instead of the entire window for maximum speed
-  ctx.clearRect(x0 - 1, y0 - 1, w + 2, h + 2);
+  ctx.clearRect(0, 0, cssW, cssH);
 
   // Background Box
   ctx.fillStyle = "rgba(12, 11, 10, 0.85)";
