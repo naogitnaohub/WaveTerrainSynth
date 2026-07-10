@@ -1,7 +1,5 @@
-// Compact per-LFO UI: a mini waveform-shape icon picker, a blinking LED (color = shape,
-// blink period = the LFO's own rate), and rate/depth potentiometers. Kept separate
-// from mod-matrix-ui.js (routing) and envelope-panel-ui.js (ADSR) -- one file per
-// modulation-panel section, so adding a third LFO later is a data change here only.
+// LFO UI: a waveform-shape icon picker, a blinking LED (color = shape,
+// blink period = LFO rate), and rate/depth potentiometers. 
 import { STEPS } from '../core/config.js';
 import { getLFO } from '../audio/engine.js';
 import { LFO_SHAPES } from '../audio/modulation/lfo.js';
@@ -44,8 +42,8 @@ function buildLfoBlock(id) {
   title.className = 'env-fader-label';
   title.textContent = id.toUpperCase();
 
-  // The LED's actual blinking is a CSS animation (see the lfo-blink @keyframes in
-  // style.css); this function just keeps its color (by shape) and animation-duration
+  // The LED's blinking is a CSS animation (see the lfo-blink @keyframes in
+  // style.css); this function just keeps the colour and animation-duration
   // (1 / rate = the LFO's period in seconds) in sync whenever the shape or rate changes.
   const led = document.createElement('span');
   led.className = 'lfo-led';
@@ -93,9 +91,7 @@ export function initLfoPanelUI() {
   if (!container) return;
   container.innerHTML = '';
   LFO_IDS.forEach((id, i) => {
-    // A thin vertical rule between LFO1 and LFO2 (and, via index.html, another one
-    // between this whole panel and the ADSR envelope) -- a visual module boundary,
-    // like the dividers between sections on a real modular synth panel.
+    //thin vertical rule between LFO1 and LFO2 
     if (i > 0) {
       const divider = document.createElement('div');
       divider.className = 'module-divider';

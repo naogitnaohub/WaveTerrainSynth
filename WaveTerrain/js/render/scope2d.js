@@ -1,9 +1,6 @@
-// A small oscilloscope-style preview (plain 2D Canvas, not WebGL) that traces one
-// period of the waveform the current orbit/FM settings would produce, redrawn every
-// frame like the 3D view. Purely for feedback; it doesn't touch the audio path at
-// all. The canvas lives as a normal row inside the control panel (see index.html's
-// .scope-canvas), sized by CSS, so this file only ever draws relative to its own
-// clientWidth/clientHeight -- no window-relative position math needed anymore.
+// A oscilloscope preview (2D Canvas, not WebGL) that traces one
+// period of the waveform of the current orbit/FM settings, redrawn every
+// frame like the 3D view. 
 import { CONFIG } from '../core/config.js';
 import { evaluateTerrain } from '../terrain/terrain-core.js';
 
@@ -43,7 +40,7 @@ export function drawScope2D() {
   ctx.fillStyle = "rgba(12, 11, 10, 0.85)";
   ctx.fillRect(x0, y0, w, h);
 
-  // Outer Border & Center Baseline (Drawn in a single stroke batch)
+  // Outer border 
   ctx.lineWidth = 1.5;
   ctx.strokeStyle = "rgba(168, 30, 104, 0.4)";
   ctx.strokeRect(x0, y0, w, h);
@@ -53,7 +50,7 @@ export function drawScope2D() {
   ctx.lineTo(x0 + w, y0 + hHalf);
   ctx.stroke();
 
-  // Scope Waveform Setup
+  // Scope waveform
   const { orbit: orb, synth, style } = CONFIG;
   const c = style.cursorColor;
 

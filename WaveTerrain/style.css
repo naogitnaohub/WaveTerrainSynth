@@ -1,3 +1,5 @@
+/* style.css made by Claude (AI) */
+
 body { margin: 0; overflow: hidden; background: #0c0b0a; user-select: none; }
 canvas { display: block; }
 /* #canvas (the WebGL terrain view) is deliberately NOT forced to 100vw/100vh here --

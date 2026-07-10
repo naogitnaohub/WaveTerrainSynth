@@ -1,20 +1,19 @@
-// Visual-only helpers (main thread rendering). Kept separate from terrain-core.js
+// Visual-only helpers (main thread rendering). It's eparate from terrain-core.js
 // because the audio worklet never needs colors — only the height function.
 import { CONFIG } from '../core/config.js';
 
-// Linear interpolation: at amt=0 returns start, at amt=1 returns end, in between a
-// proportional blend. The standard building block for any kind of "fade from A to B".
+// Linear interpolation: at amt=0 returns start, at amt=1 returns end, between is proportional blend
 export function lerp(start, end, amt) {
   return start + (end - start) * amt;
 }
 
-// Maps a terrain height (normalized to 0..1 via `t`) to an RGB color string, by
+// Mapsterrain heightto an RGB color string, by
 // blending across the 4-color palette in CONFIG.style.terrainPalette: low points are
 // palette[0], mid-low is palette[1], mid-high is palette[2], peaks are palette[3].
-// `lightIntensity` (0..~1.5) additionally darkens/brightens the result to fake
+// `lightIntensity` (0..~1.5)  darkens/brightens the result to fake
 // directional lighting -- see the normal-vector calculation in renderer.js.
 export function getGradientColor(t, lightIntensity = 1.0) {
-  t = t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t);
+  t = t < 0.0 ? 0.0 : (t > 1.0 ? 1.0 : t); //normalization to 01
   const palette = CONFIG.style.terrainPalette;
 
   // Split the 0..1 range into three thirds, each interpolating between one adjacent

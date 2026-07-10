@@ -1,16 +1,9 @@
-// A rotary knob control -- there's no native HTML equivalent, so this is a small SVG
-// (a track arc, tick marks, a pointer line) driven entirely by vertical drag: dragging
-// up increases the value, down decreases it, a fixed pixel distance (DRAG_RANGE_PX)
-// spans the whole min..max range, same idea as a real knob or a DAW plugin's. There's
-// deliberately no "click to jump" the way a linear slider has -- a circle has no
-// natural click-to-position mapping, so knobs (real or virtual) don't support that.
-//
-// `step` always controls snapping (like every other control in this app, from
-// core/config.js's STEPS table). `visualTicks` is purely cosmetic -- how many tick
-// marks to draw around the arc -- except for a fully discrete control (e.g. the wave
-// selector) where passing visualTicks equal to the number of valid steps makes the
-// ticks line up exactly with where the knob will actually stop.
-const SWEEP_DEG = 270;       // -135deg (min) to +135deg (max) -- the standard knob range
+// Custom SVG rotary knob driven by vertical drag.
+// Maps a fixed pixel distance (DRAG_RANGE_PX) across the full [min, max] range.
+// Intentionally omits "click-to-jump" behavio
+
+
+const SWEEP_DEG = 270;       // -135deg (min) to +135deg (max) - knob range
 const DRAG_RANGE_PX = 150;   // vertical drag distance (px) that spans the full min..max range
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
@@ -22,10 +15,6 @@ function angleFor(min, max, value) {
 export function createPotentiometer({ min, max, step = 1, value, visualTicks = 11, label, formatValue, onInput, color }) {
   const wrap = document.createElement('div');
   wrap.className = 'pot';
-  // Optional: color this one control explicitly (e.g. several differently-themed
-  // pots sharing one row-section) rather than relying on an ancestor row's color --
-  // pot-value/pot-label/pot-pointer all use `color: inherit`/`currentColor`, so this
-  // one assignment re-themes the whole control.
   if (color) wrap.style.color = color;
 
   const svg = document.createElementNS(SVG_NS, 'svg');
@@ -56,8 +45,7 @@ export function createPotentiometer({ min, max, step = 1, value, visualTicks = 1
 
   wrap.appendChild(svg);
 
-  // Value + label sit beside the knob (not underneath) to keep each control's total
-  // height close to just the knob's own height -- rows of these stay compact.
+  
   const text = document.createElement('div');
   text.className = 'pot-text';
 

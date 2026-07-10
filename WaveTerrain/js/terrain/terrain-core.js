@@ -1,16 +1,7 @@
-// Pure wave terrain height function. No DOM/canvas dependency on purpose: this file
-// is imported by both the audio worklet (audio thread) and the renderer/scope (main
-// thread), so it must be safe to load inside an AudioWorkletProcessor module.
-//
-// What this function IS, musically: a 2D surface z = f(x, z) -- five different
-// formulas below, selected by `wave` (1-5, or the default). `a` is a shape parameter
-// that distorts each surface (think of it like a extra knob baked into the formula).
-// Nothing here is audio-specific by itself: it just returns a height for a given
-// (x, z) coordinate. It becomes *sound* when something else (the audio worklet) walks
-// a moving point across this surface once per waveform cycle and reads the height off
-// as the sample value -- that's the "wave terrain synthesis" technique itself, and it
-// happens in js/audio/worklet/terrain-processor.js. This file only holds the terrain
-// shapes; it has no idea it's being used for audio.
+// Wave terrain height function :
+// 2D surface z = f(x, z): returns a height given (x, z) coordinates.
+// - 5 formulas, selected by `wave` .
+// -`a` is a shape parameter that distorts the surface, a as different meaingn in each function
 export function evaluateTerrain(wave, x, z, a) {
   switch (wave) {
     case 1:

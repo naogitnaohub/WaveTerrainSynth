@@ -1,5 +1,6 @@
-// Raw WebGL2 -- no Three.js or other 3D library. If you haven't used WebGL before,
-// the short version: you upload the terrain as a mesh of triangles (a big list of 3D
+// Render : made by Claude (AI)
+// 
+// Raw WebGL2 -- upload the terrain as a mesh of triangles (a big list of 3D
 // points, "vertices", plus a list of which triples of them form each triangle), write
 // two small GPU programs called shaders (one that positions each vertex on screen,
 // one that colors each pixel), and the GPU does the actual rasterizing. This file's

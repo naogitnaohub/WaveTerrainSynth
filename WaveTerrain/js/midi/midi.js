@@ -1,7 +1,6 @@
-// Web MIDI input. Note on/off drives the exact same noteOn()/noteOff() gate the
-// spacebar uses (see ui/input.js); CC messages drive synth params through the same
-// syncUI() path the on-screen sliders use -- a hardware knob and a slider are just
-// two different inputs to one pathway, so nothing downstream needs to know which one fired.
+// Web MIDI input: Note on/off drives the same noteOn()/noteOff() gate as the
+// spacebar (see ui/input.js), CC messages drive synth params through the same
+// syncUI() path as the on-screen sliders
 import { noteOn, noteOff, resumeAudio } from '../audio/engine.js';
 import { syncUI } from '../ui/input.js';
 
@@ -9,28 +8,25 @@ let initialized = false;
 
 // Which MIDI notes are currently physically held. Needed for two reasons: (1) if
 // notes overlap (e.g. a legato phrase, or a recorded sequence with overlapping
-// triggers), releasing the *first* one shouldn't cut the sound while a second is
+// triggers), releasing the first one shouldn't cut the sound while a second is
 // still held -- noteOff() should only fire once nothing is held anymore. (2) it's
-// what gets force-cleared on an All Notes/Sound Off message, see below.
+// what gets force-cleared on an All Notes/Sound Off message.
 const heldNotes = new Set();
 
-// MIDI note number -> Hz (A4 = note 69 = 440Hz), the standard 12-TET formula.
+// MIDI note number -> Hz (A4 = note 69 = 440Hz, C4 = note 60)
 function noteToFrequency(note) {
   return 440 * Math.pow(2, (note - 69) / 12);
 }
 
-// Which CC number drives which on-screen slider id. Any id from input.js's UI_MAP
-// works here -- add a line to learn a new knob.
+// Which CC number drives which on-screen slider id. 
+// Any id from input.js's UI_MAP works
 const CC_MAP = {
   1: 'fm-index',  // mod wheel
-  74: 'param-a',  // common "cutoff"-style knob on most controllers
+  74: 'param-a',  
   7: 'volume'     // channel volume fader
 };
 
-// Every MIDI message is 1-3 raw bytes. `status`'s low nibble (& 0x0f, not used here)
-// is the MIDI channel; its high nibble (& 0xf0) is the message type -- 0x90 = note
-// on, 0x80 = note off, 0xb0 = control change. data1/data2 are that message type's two
-// parameters (e.g. for note-on: which note, and how hard it was struck/"velocity").
+
 function handleMidiMessage(event) {
   const [status, data1, data2] = event.data;
   const command = status & 0xf0;
@@ -44,11 +40,10 @@ function handleMidiMessage(event) {
     heldNotes.delete(data1);
     if (heldNotes.size === 0) noteOff(); // a still-held second note keeps the sound going
   } else if (command === 0xb0) { // control change
-    // CC 120 (All Sound Off) / 123 (All Notes Off) are the standard "panic" messages
-    // sequencers/DAWs send on stop, mute, or transport reset. Without handling these,
+    // CC 120 (All Sound Off) / 123 (All Notes Off) are panic messages
+    // sequencers send on stop, mute, or transport reset. Without handling these,
     // a note whose matching note-off got skipped (e.g. deleted from a recorded
-    // sequence, or cut off by muting mid-note) sustains forever -- the classic MIDI
-    // "stuck note" bug.
+    // sequence, or cut off by muting mid-note) sustains forever 
     if (data1 === 120 || data1 === 123) {
       heldNotes.clear();
       noteOff();

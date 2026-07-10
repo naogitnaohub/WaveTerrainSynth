@@ -1,9 +1,7 @@
-// Save/recall a full "patch": synth params, orbit position, envelope, both LFOs, and
-// the mod matrix's routes (with depth). Pure logic, no DOM -- ui/presets-ui.js is the
-// on-screen Save/Load/Delete controls that call into this file. Storage is a single
-// localStorage entry holding { [name]: presetData }; no server, no file I/O, fits
-// this project's "stay light" priority, and none of this touches the audio thread --
-// it's all just reading/writing plain control-rate values.
+// Save/load a preset "patch": synth params, orbit position, envelope, LFOs, and
+// the mod matrix routings.
+// Storage is a single  localStorage entry holding { [name]: presetData }
+
 import { CONFIG, setOrbitState } from './config.js';
 import { getEnvelope, getLFO, updateAudioSynth } from '../audio/engine.js';
 import * as modMatrix from '../audio/modulation/mod-matrix.js';
@@ -16,7 +14,7 @@ function readStore() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
   } catch {
-    return {}; // corrupted/missing storage shouldn't crash the app, just start empty
+    return {}; // corrupted/missing storage don't crash the app, but start empty
   }
 }
 
@@ -24,7 +22,7 @@ function writeStore(store) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(store));
 }
 
-// Snapshot everything a "patch" consists of, as plain JSON-able data.
+// Snapshot  as plain json data.
 function collectState() {
   const envelope = getEnvelope();
   return {
@@ -93,9 +91,7 @@ export function deletePreset(name) {
   writeStore(store);
 }
 
-// Downloads the whole preset library as one .json file -- a real, portable backup
-// independent of this browser's localStorage (survives clearing browser data,
-// moving to another computer, etc.), on top of the localStorage copy.
+// Downloads the whole preset library as one .json file
 export function exportToFile() {
   const blob = new Blob([JSON.stringify(readStore(), null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
@@ -108,7 +104,7 @@ export function exportToFile() {
 
 // Merges an exported file back in (by name -- an imported preset with the same name
 // as an existing one overwrites it). Returns the merged preset names for the UI to
-// refresh its list with.
+// update its list
 export async function importFromFile(file) {
   const text = await file.text();
   const incoming = JSON.parse(text);

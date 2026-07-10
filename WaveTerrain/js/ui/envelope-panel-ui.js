@@ -1,6 +1,4 @@
-// Builds the four ADSR faders into #env-panel. Kept as its own file, separate from
-// lfo-panel-ui.js / mod-matrix-ui.js, so each modulation-panel section stays a
-// one-file, one-concern unit -- easy to find, easy to extend independently.
+// Four ADSR faders into #env-panel
 import { STEPS } from '../core/config.js';
 import { getEnvelope } from '../audio/engine.js';
 
@@ -11,9 +9,7 @@ const FADERS = [
   { id: 'release', label: 'R', min: 0.001, max: 3, step: STEPS.release, get: e => e.release, set: (e, v) => e.setRelease(v) }
 ];
 
-// Purely decorative reference lines running the length of the fader -- a native
-// range input can't render a custom tick list on its own track, so this is a small
-// separate strip of evenly-spaced marks placed right beside it.
+// Decorative reference lines running the length of the fader
 function buildTicks(count = 11) {
   const ticks = document.createElement('div');
   ticks.className = 'vfader-ticks';
@@ -24,7 +20,7 @@ function buildTicks(count = 11) {
 // Call once, after initAudio() has resolved (so the envelope node exists). This
 // module builds its own DOM (document.createElement + appendChild) instead of
 // editing pre-written HTML, driven by the FADERS table above -- that's what makes
-// adding a 5th envelope stage later a one-line change here rather than an edit in
+// adding a 5th envelope stage later a one-line change here rather than modify
 // index.html too.
 export function initEnvelopePanelUI() {
   const container = document.getElementById('env-panel');
