@@ -1,7 +1,9 @@
 # WaveTerrainSynth
 
-A real-time **wave terrain synthesizer** built with the Web Audio API, AudioWorklet and WebGL2 — vanilla JavaScript, no framework, no build step.
-Can try the app : wavywavy.netlify.app (Use space bar for not, o p q w + - 0 1 2 3 4 5 6 7 8 9 and all arrows for controls)
+A real-time **wave terrain synthesizer** built with the Web Audio API, AudioWorklet and WebGL2.
+
+Can try the app : wavywavy.netlify.app 
+(- Use space bar or midi keyboard to trigger note, o p q w + - 0 1 2 3 4 5 6 7 8 9 and all arrows for controls)
 
 
 Project for **ACTAM** (Advanced Coding Tools and Methodologies), M.Sc. in Music and Acoustic Engineering, Politecnico di Milano (POLIMI).
