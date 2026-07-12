@@ -1,34 +1,26 @@
-/* style.css made by Claude (AI) */
+/* style.css written by CLAUDE (AI) */
+
+:root { --pink: 196, 18, 71; }
 
 body { margin: 0; overflow: hidden; background: #0c0b0a; user-select: none; }
 canvas { display: block; }
-/* #canvas (the WebGL terrain view) is deliberately NOT forced to 100vw/100vh here --
-   render/renderer.js sizes and positions it in JS to the space left of the control
-   panel, so the terrain centers in the visible area rather than the whole window. */
+/* #canvas (WebGL terrain view): render/renderer.js sizes and positions it in JS to the space left of the control
+   panel, so the terrain centers in the visible area and not in the whole window */
 #canvas { position: absolute; top: 0; left: 0; }
-/* rgb(242, 64, 217) = CONFIG.style.cursorColor (core/config.js) -- the scope's pink,
-   reused everywhere else pink text appears so there's exactly one "pink" in the app. */
-/* z-index needed: #canvas (the WebGL view) has no z-index of its own, but as a
-   later sibling in the DOM it still paints over #info by default stacking order --
-   without this, "wavy wavy" renders but sits completely hidden underneath it. */
-#info { position: absolute; top: 15px; left: 20px; z-index: 5; color: rgb(242, 64, 217); font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
 
-/* The single unified control panel: every control lives here, top to bottom, one
-   row-section per group. Scrolls internally if the content is taller than the
-   viewport rather than spilling off-screen. */
+#info { position: absolute; top: 15px; left: 20px; z-index: 5; color: rgb(var(--pink)); font-family: 'Segoe UI', Arial, sans-serif; font-weight: bold; text-shadow: 0 2px 4px rgba(0,0,0,0.5); pointer-events: none; }
+
+/* The single control panel: every control is here, top to bottom, one
+   row-section per group. */
 .control-panel { position: absolute; top: 15px; right: 20px; bottom: 20px; width: 500px; overflow-y: auto; z-index: 10; font-family: 'Segoe UI', Arial, sans-serif; color: #fff; display: flex; flex-direction: column; gap: 6px; }
 
-/* Each row-section sets its own --row-color (text/pointer/accent color) and a
-   top-lighter-to-bottom-darker gradient tinted toward that same color, so the panel
-   reads as a sequence of distinct, color-coded sections while staying dark and readable. */
+/* Each row-section sets its own --row-color (text/pointer/accent color) with gradient */
 .row-section { border-radius: 8px; padding: 7px 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.08); background: linear-gradient(to bottom, var(--row-light), var(--row-dark)); color: var(--row-color); }
-.row-neutral { --row-light: rgba(242,64,217,0.10); --row-dark: rgba(20,10,18,0.95); --row-color: rgb(242, 64, 217); }
+.row-neutral { --row-light: rgba(var(--pink), 0.10); --row-dark: rgba(20,10,18,0.95); --row-color: rgb(var(--pink)); }
 .row-orange  { --row-light: rgba(251,146,60,0.16);  --row-dark: rgba(32,20,8,0.95);   --row-color: #fb923c; }
-.row-pink    { --row-light: rgba(242,64,217,0.16);  --row-dark: rgba(30,8,26,0.95);   --row-color: rgb(242, 64, 217); }
+.row-pink    { --row-light: rgba(var(--pink), 0.16); --row-dark: rgba(30,8,26,0.95);   --row-color: rgb(var(--pink)); }
 
-/* A thin vertical rule marking a boundary between control groups within a shared
-   row-section -- e.g. the Wave/Y-Scale/A group vs. the Frequency/FM group, or LFOs
-   vs. the ADSR envelope -- similar to the panel dividers on a real modular synth. */
+/* A vertical line marking a boundary between control groups which are on the same row */
 .module-divider { align-self: stretch; width: 1px; background: rgba(255,255,255,0.15); }
 
 .preset-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
@@ -127,3 +119,35 @@ canvas { display: block; }
    actually allowed to shrink/grow within its column instead of only growing. */
 .row-scope { flex: 1; min-height: 0; display: flex; }
 .scope-canvas { display: block; width: 100%; flex: 1; min-height: 0; border-radius: 6px; }
+
+/* MIDI-learn (see js/midi/midi-map.js): #midi-map-btn toggles learn mode, which tags
+   #control-panel with .midi-learn-mode. One fixed cyan accent for all learn-mode
+   feedback (rather than currentColor) so it reads the same across the panel's four
+   differently-themed rows -- the mapping is about the physical controller, not any
+   one row's color. */
+#midi-map-btn.active { border-color: #22d3ee; background: rgba(34, 211, 238, 0.18); color: #22d3ee; }
+/* Live readout of the last raw MIDI message received, regardless of whether it's
+   mapped to anything -- lets you confirm input is actually arriving from a
+   controller even when the controller's own LEDs need host feedback to light
+   (e.g. Akai MIDIMIX mute buttons, which we don't echo back to). */
+.midi-activity { font-family: 'Consolas', monospace; font-size: 11px; padding: 3px 8px; border-radius: 4px; background: #1c1a19; border: 1px solid rgba(255,255,255,0.2); color: #888; white-space: nowrap; }
+.midi-activity.flash { color: #22d3ee; border-color: #22d3ee; }
+.midi-learn-mode [data-midi-id] { cursor: crosshair; }
+.midi-learn-mode [data-midi-id]:hover { outline: 2px dashed #22d3ee; outline-offset: 2px; }
+.midi-armed { outline: 2px solid #22d3ee !important; outline-offset: 2px; animation: midi-pulse 0.8s ease-in-out infinite; }
+@keyframes midi-pulse { 0%, 100% { outline-color: #22d3ee; } 50% { outline-color: transparent; } }
+.midi-mapped { box-shadow: 0 0 0 2px #22d3ee; }
+/* ::after doesn't render on replaced elements (<input>), so the "CC##"/"N##" badge
+   only shows on pots and mod-matrix cells (plain divs) -- mapped sliders/faders still
+   get the box-shadow ring above, plus a native title tooltip (see midi-map.js) as the
+   cross-element fallback. data-midi-label already carries the full "CC1"/"N4" text
+   (see midi-map.js's markMapped()), so no CSS-side prefix is needed here. */
+.pot.midi-mapped, .mm-cell.midi-mapped { position: relative; }
+.pot.midi-mapped::after, .mm-cell.midi-mapped::after {
+  content: attr(data-midi-label);
+  position: absolute; top: -6px; left: 2px;
+  font-size: 8px; font-weight: bold; color: #22d3ee; background: #0c0b0a;
+  padding: 0 2px; border-radius: 2px; pointer-events: none;
+}
+
+#midi-clear-btn:hover { border-color: #22d3ee; color: #22d3ee; }

@@ -1,9 +1,10 @@
-// LFO UI: a waveform-shape icon picker, a blinking LED (color = shape,
-// blink period = LFO rate), and rate/depth potentiometers. 
+// LFO panel UI: a waveform-shape icon picker, a blinking LED (color = shape,
+// blink period = LFO rate), and rate/depth potentiometers.
 import { STEPS } from '../core/config.js';
 import { getLFO } from '../audio/engine.js';
 import { LFO_SHAPES } from '../audio/modulation/lfo.js';
 import { createPotentiometer } from './potentiometer.js';
+import { registerMidiTarget } from '../midi/midi-map.js';
 
 export const LFO_IDS = ['lfo1', 'lfo2'];
 
@@ -42,15 +43,15 @@ function buildLfoBlock(id) {
   title.className = 'env-fader-label';
   title.textContent = id.toUpperCase();
 
-  // The LED's blinking is a CSS animation (see the lfo-blink @keyframes in
-  // style.css); this function just keeps the colour and animation-duration
-  // (1 / rate = the LFO's period in seconds) in sync whenever the shape or rate changes.
+  // The LED's blink is a CSS animation (see the lfo-blink @keyframes in
+  // style.css); this just keeps its color and animation-duration (1/rate =
+  // the LFO's period in seconds) in sync when shape or rate change.
   const led = document.createElement('span');
   led.className = 'lfo-led';
   const updateLed = () => {
     const color = SHAPE_COLOR[lfo.type];
     led.style.background = color;
-    led.style.color = color; // box-shadow in CSS uses currentColor, so this drives the glow too
+    led.style.color = color; // the CSS glow (box-shadow) uses currentColor, so this drives it too
     led.style.animationDuration = `${1 / lfo.rate}s`;
   };
   updateLed();
@@ -79,6 +80,15 @@ function buildLfoBlock(id) {
   });
   potsRow.append(ratePot.el, depthPot.el);
 
+  registerMidiTarget(`${id}-rate`, {
+    min: 0.05, max: 20, el: ratePot.el,
+    setValue: v => { lfo.setRate(v); ratePot.setValue(v); updateLed(); }
+  });
+  registerMidiTarget(`${id}-depth`, {
+    min: 0, max: 1, el: depthPot.el,
+    setValue: v => { lfo.setDepth(v); depthPot.setValue(v); }
+  });
+
   header.append(title, led);
   block.append(header, shapesRow, potsRow);
 
@@ -91,8 +101,7 @@ export function initLfoPanelUI() {
   if (!container) return;
   container.innerHTML = '';
   LFO_IDS.forEach((id, i) => {
-    //thin vertical rule between LFO1 and LFO2 
-    if (i > 0) {
+    if (i > 0) { // vertical line btw LFO1 and LFO2
       const divider = document.createElement('div');
       divider.className = 'module-divider';
       container.appendChild(divider);

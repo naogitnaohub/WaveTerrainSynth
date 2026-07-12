@@ -1,32 +1,34 @@
 # WaveTerrainSynth
 
-A real-time **wave terrain synthesizer** built with the Web Audio API, AudioWorklet and WebGL2 — vanilla JavaScript, no framework, no build step.
-Can try the app : wavywavy.netlify.app (Use space bar for not, o p q w + - 0 1 2 3 4 5 6 7 8 9 and all arrows for controls)
+A real-time wave terrain synth built with Web Audio API, AudioWorklet and WebGL2.
+
+Can try the app : wavywavy.netlify.app
 
 
-Project for **ACTAM** (Advanced Coding Tools and Methodologies), M.Sc. in Music and Acoustic Engineering, Politecnico di Milano (POLIMI).
+Project for ACTAM (Advanced Coding Tools and Methodologies), M.Sc. in Music and Acoustic Engineering, Politecnico di Milano (POLIMI).
 
-## Wave terrain synthesis
-
-A wave terrain synthesis defines a 2D height function `f(x, z)` — the "terrain" — and reads the audio signal by walking a trajectory (here a circular orbit) across that surface once per audio-signal period. The terrain shape, the orbit's radius/position, and how fast it's traversed shape the resulting timbre. This project renders the terrain as a live 3D mesh, to see the surface that is heard.
+## Wave terrain synth
+The terrain is a 2D height function `f(x, z)`. A circular orbit, the sound path, walks across it once per audio period; the height along the orbit is the waveform. The terrain shape, orbit radius/position, and orbit speed define the timbre. 
 
 ## Features
 
-- Real-time synthesis on a dedicated `AudioWorkletProcessor` (audio thread, not the UI thread) — five selectable terrain shapes, FM modulation, adjustable orbit/terrain parameters.
-- Live 3D WebGL2 visualization of the terrain + the orbit path, and a 2D oscilloscope preview of the resulting waveform.
-- An ADSR envelope, two LFOs (sine/triangle/square), and a modulation matrix to route onto synth parameters — all implemented as native Web Audio node connections, not custom per-sample code.
-- MIDI input: notes drive the envelope + pitch, CC knobs drive the on-screen sliders.
-- A "precision mode" toggle (`x` key) for finer slider control.
+- Real-time synthesis on a dedicated `AudioWorkletProcessor`, off the UI thread. 15 terrain shapes, FM modulation, adjustable orbit/terrain parameters.
+- Live 3D WebGL2 view of the terrain and orbit, plus a 2D oscilloscope (on canvas).
+- ADSR envelope, two LFOs, and a modulation matrix, all as Web Audio node connections. One toggle bypasses the whole modulation matrix  without routing information.
+- Potentiometers and faders for every synth parameter.
+- Presets: save/load by name, export/import as `.json`.
+- MIDI input: notes trigger the envelope and set pitch, CC knobs drive on-screen controls. 
+- MIDI maping: MIDI-learn binds any pot, fader, or matrix cell to a CC or note.
 
 ## Getting started
 
-No dependencies, no build step. Because the app uses ES modules and an `AudioWorklet`, it must be served over HTTP (not opened directly as a `file://` path). From the repository root:
+ Must be served over HTTP, not opened as `file://`, because it uses ES modules and an `AudioWorklet`.
 
 ```bash
 npx serve WaveTerrain
 ```
 
-Then open the printed local address in a recent Chrome, Edge, or Firefox (WebGL2 + AudioWorklet support required) and **click the canvas once** — browsers require a user gesture before audio can start. That click also shows the modulation panel and starts listening for MIDI input.
+Open the printed address in a recent Chrome, Edge, or Firefox. Click the canvas once to start audio and MIDI listening.
 
 ## Controls
 
@@ -45,11 +47,10 @@ Then open the printed local address in a recent Chrome, Edge, or Firefox (WebGL2
 | `o` / `p` | Wave shape parameter `a` down / up |
 | `q` / `w` | Previous / next terrain shape |
 | Spacebar (hold) | Trigger the envelope (note on/off) |
-| `x` | Toggle precision (fine step) mode |
 
-Sliders can also be dragged directly, and a connected MIDI controller can play notes and turn mapped CC knobs.
+Potentiometers drag vertically. Volume and ADSR faders drag like a normal slider. A connected MIDI controller plays notes and knobs can be mapped to parameters.
 
-The modulation matrix (top-right panel) is a small grid: columns are modulation sources (envelope, LFO1, LFO2), rows are destinations. Click and drag a cell up/down to set modulation intensity.
+The modulation matrix is inside the control panel: rows are sources (LFO1, LFO2, Envelope), columns are destinations. Drag a cell up/down to set depth; drag to the bottom to remove the route. Bypass (top-right, above Volume) mutes every route without loosing their depths values.
 
 ## Project structure
 
@@ -61,9 +62,12 @@ WaveTerrain/
     terrain/   the wave-terrain height function and its color mapping
     audio/     AudioContext setup, the AudioWorklet processor, and modulation
                (envelope, LFOs, the modulation matrix)
-    midi/      Web MIDI input handling
-    render/    WebGL2 terrain renderer + the 2D scope overlay
-    ui/        sliders, hotkeys, and the on-screen modulation panel
+    midi/      Web MIDI input + MIDI-learn CC/note mapping
+    render/    WebGL2 terrain renderer + the 2D scope
+    ui/        potentiometers, the on-screen modulation panel, presets, hotkeys
     main.js    entry point and the render/audio-lifecycle loop
 ```
 
+## AI use
+
+`ui/potentiometer.js`, `ui/presets-ui.js`, `render/renderer.js`, `terrain/terrain-color.js, and `midi/midi-map.js` were written with Claude.

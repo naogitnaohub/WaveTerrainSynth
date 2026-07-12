@@ -1,8 +1,8 @@
-// Save/Load/Delete controls for core/presets.js. After loading a preset, the
-// envelope/LFO/matrix panels are rebuilt so their displayed faders and matrix cells
-// reflect the newly-loaded values -- initEnvelopePanelUI()/initLfoPanelUI()/
-// initModMatrixUI() already do a full rebuild from current state, so re-calling them
-// here is the correct refresh rather than inventing a separate update path.
+// presetsui.js written by CLAUDE (AI)
+
+// Save/Load/Delete/Export/Import controls for core/presets.js. After loading
+// a preset, the envelope/LFO/matrix panels are rebuilt.
+
 import { listPresetNames, savePreset, loadPreset, deletePreset, exportToFile, importFromFile } from '../core/presets.js';
 import { initEnvelopePanelUI } from './envelope-panel-ui.js';
 import { initLfoPanelUI } from './lfo-panel-ui.js';
@@ -17,7 +17,7 @@ function rebuildModPanels() {
 function refreshList(select) {
   const current = select.value;
   select.innerHTML = listPresetNames().map(name => `<option value="${name}">${name}</option>`).join('');
-  if ([...select.options].some(o => o.value === current)) select.value = current;
+  if ([...select.options].some(o => o.value === current)) select.value = current; // keep the same preset selected if it still exists
 }
 
 export function initPresetsUI() {
@@ -56,10 +56,10 @@ export function initPresetsUI() {
 
   exportBtn.onclick = () => exportToFile();
 
-  importBtn.onclick = () => importFile.click();
+  importBtn.onclick = () => importFile.click(); // triggers the hidden <input type=file> picker
   importFile.onchange = async () => {
     const file = importFile.files[0];
-    importFile.value = ''; // allow re-importing the same filename later
+    importFile.value = ''; // reset, so re-importing the same filename later still fires 'change'
     if (!file) return;
     await importFromFile(file);
     refreshList(select);
