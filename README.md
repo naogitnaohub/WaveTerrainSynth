@@ -70,7 +70,7 @@ WaveTerrain/
 
 ## AI use
 
-`ui/potentiometer.js`, `ui/presets-ui.js`, `render/renderer.js`, `terrain/terrain-color.js, and `midi/midi-map.js` were written with Claude.
+`ui/potentiometer.js`, `ui/presets-ui.js`, `render/renderer.js`, `terrain/terrain-color.js`, and `midi/midi-map.js` were written with Claude.
 
 Genereally, AI helped structure the code to be computationnaly cheaper, more efficent and modular.
 In particular, using a separate thread for real-time audio would not have been possible without AI.

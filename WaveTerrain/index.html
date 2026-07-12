@@ -7,7 +7,39 @@
     <link rel="stylesheet" href="style.css">
   </head>
   <body>
-    <div id="info">wavy wavy</div>
+    <div id="info">wavy wavy<span id="help-hint">press <kbd>H</kbd> for help</span></div>
+
+    <div id="help-overlay">
+      <div id="help-box">
+        <button id="help-close-btn" type="button" title="Close">&times;</button>
+        <h2>Wave Terrain Synth</h2>
+
+        <h3>How the sound is made</h3>
+        <p>The terrain is a 2D surface, height = f(x, z). A small orbit circles around on top of it, once per audio period; the height it passes over becomes the waveform. <b>Frequency</b> is how fast the orbit goes around. <b>FM Ratio/Intensity</b> wobbles that speed. <b>Wave</b> picks the terrain shape, <b>A</b> reshapes it, <b>Y-Scale</b> stretches its height.</p>
+
+        <h3>Modulation matrix</h3>
+        <p>Rows are <b>sources</b> (LFO1, LFO2, Envelope) — signals that move on their own. Columns are <b>destinations</b> — the parameters they can drive. Drag a cell upward to route a source into a destination; the higher you drag, the stronger the effect. Drag back to the bottom to remove the route. <b>Bypass</b> mutes every route at once without forgetting their depths.</p>
+
+        <h3>Envelope &amp; LFOs</h3>
+        <p>The <b>ADSR envelope</b> shapes each note: Attack/Decay play once when a note starts, Sustain holds while it's held, Release fades it out after. The two <b>LFOs</b> are steady repeating waves (sine/triangle/square) at their own rate — both are just modulation sources, so route either into anything through the matrix above.</p>
+
+        <h3>Controls</h3>
+        <table>
+          <tr><td>Click canvas</td><td>Enable audio (once)</td></tr>
+          <tr><td>Drag canvas</td><td>Orbit the camera</td></tr>
+          <tr><td>Scroll wheel</td><td>Zoom</td></tr>
+          <tr><td>Arrow keys</td><td>Move the orbit center</td></tr>
+          <tr><td>Spacebar (hold)</td><td>Trigger the envelope</td></tr>
+          <tr><td>1 / 2, 4 / 5, 7 / 8, 3 / 6, 0 / 9</td><td>Freq, FM intensity, FM ratio, Y-scale, Volume</td></tr>
+          <tr><td>O / P</td><td>Wave shape parameter A down / up</td></tr>
+          <tr><td>Q / W</td><td>Previous / next terrain shape</td></tr>
+          <tr><td>H</td><td>Toggle this help</td></tr>
+        </table>
+
+        <h3>Presets &amp; MIDI</h3>
+        <p>Save/load full setups (including routing) by name, or export/import as a file. Any MIDI controller's notes play the synth and its knobs can be mapped to any control — click <b>MIDI MAP</b>, then touch a knob and move the physical control to link them.</p>
+      </div>
+    </div>
 
     <div class="control-panel" id="control-panel">
       <div class="row-section row-neutral">

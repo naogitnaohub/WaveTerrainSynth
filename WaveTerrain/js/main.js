@@ -17,6 +17,7 @@ import { initMidiLearnButton } from './midi/midi-map.js';
 import { initEnvelopePanelUI } from './ui/envelope-panel-ui.js';
 import { initLfoPanelUI } from './ui/lfo-panel-ui.js';
 import { initPresetsUI } from './ui/presets-ui.js';
+import { initHelpPanel } from './ui/help-panel-ui.js';
 
 const canvas = document.getElementById("canvas");
 
@@ -26,6 +27,7 @@ initMainControls(); // pushes CONFIG's default values into each pot/slider
 initMidiLearnButton();
 initRenderer();
 initScope2D();
+initHelpPanel();
 
 // initAudio() builds the whole Web Audio graph
 // envlope/LFO/matrix/ preset panels only when the audio grap (and its envelope/LFO nodes)
