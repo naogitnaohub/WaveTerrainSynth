@@ -4,10 +4,10 @@ A real-time wave terrain synth built with Web Audio API, AudioWorklet and WebGL2
 
 Can try the app : wavywavy.netlify.app
 
-
 Project for ACTAM (Advanced Coding Tools and Methodologies), M.Sc. in Music and Acoustic Engineering, Politecnico di Milano (POLIMI).
 
-## Wave terrain synth
+## Wave terrain synth 
+
 The terrain is a 2D height function `f(x, z)`. A circular orbit, the sound path, walks across it once per audio period; the height along the orbit is the waveform. The terrain shape, orbit radius/position, and orbit speed define the timbre. 
 
 ## Features
@@ -71,3 +71,7 @@ WaveTerrain/
 ## AI use
 
 `ui/potentiometer.js`, `ui/presets-ui.js`, `render/renderer.js`, `terrain/terrain-color.js, and `midi/midi-map.js` were written with Claude.
+
+Genereally, AI helped structure the code to be computationnaly cheaper, more efficent and modular.
+In particular, using a separate thread for real-time audio would not have been possible without AI.
+
